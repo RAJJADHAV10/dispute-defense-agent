@@ -14,6 +14,8 @@ tags:
     description: Simulated dispute case operations
   - name: dashboard
     description: Demo dashboard summary and activity
+  - name: paypal
+    description: Read-only PayPal Sandbox diagnostics and disputes
 paths:
   /healthz:
     get:
@@ -102,6 +104,32 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ActivityEntry"
+  /paypal/status:
+    get:
+      operationId: getPayPalStatus
+      tags: [paypal]
+      summary: Check PayPal Sandbox authentication
+      description: Safely reports whether server-side PayPal Sandbox authentication works
+      responses:
+        "200":
+          description: PayPal Sandbox connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayPalStatus"
+  /paypal/disputes:
+    get:
+      operationId: getPayPalDisputes
+      tags: [paypal]
+      summary: List PayPal Sandbox disputes
+      description: Returns PayPal disputes or an explicitly labelled simulated fallback
+      responses:
+        "200":
+          description: PayPal Sandbox disputes or labelled demo fallback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayPalDisputesResult"
 components:
   schemas:
     HealthStatus:
@@ -201,4 +229,101 @@ components:
         - title
         - description
         - timestamp
+    PayPalStatus:
+      type: object
+      properties:
+        configured:
+          type: boolean
+        authenticated:
+          type: boolean
+        status:
+          type: string
+          enum: [connected, not_configured, authentication_failed, unavailable]
+        message:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
+      required:
+        - configured
+        - authenticated
+        - status
+        - message
+        - checkedAt
+    PayPalDisputeSummary:
+      type: object
+      properties:
+        id:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+        reason:
+          type: ["string", "null"]
+        amount:
+          type: ["string", "null"]
+        currencyCode:
+          type: ["string", "null"]
+        createdAt:
+          type: ["string", "null"]
+          format: date-time
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+        responseDeadline:
+          type: ["string", "null"]
+          format: date-time
+        lifecycleStage:
+          type: ["string", "null"]
+        channel:
+          type: ["string", "null"]
+        isSimulated:
+          type: boolean
+      required:
+        - id
+        - status
+        - reason
+        - amount
+        - currencyCode
+        - createdAt
+        - updatedAt
+        - responseDeadline
+        - lifecycleStage
+        - channel
+        - isSimulated
+    PayPalDisputesResult:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [paypal_sandbox, simulated_fallback]
+        status:
+          type: string
+          enum: [connected, fallback]
+        isSimulated:
+          type: boolean
+        message:
+          type: string
+        errorCode:
+          type: ["string", "null"]
+          enum:
+            - not_configured
+            - authentication_failed
+            - paypal_api_error
+            - network_error
+            - invalid_response
+            - null
+        total:
+          type: integer
+        disputes:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayPalDisputeSummary"
+      required:
+        - source
+        - status
+        - isSimulated
+        - message
+        - errorCode
+        - total
+        - disputes
 

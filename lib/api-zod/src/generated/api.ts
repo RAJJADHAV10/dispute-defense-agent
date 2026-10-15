@@ -100,3 +100,43 @@ export const GetActivityResponseItem = zod.object({
 export const GetActivityResponse = zod.array(GetActivityResponseItem)
 
 
+/**
+ * Safely reports whether server-side PayPal Sandbox authentication works
+ * @summary Check PayPal Sandbox authentication
+ */
+export const GetPayPalStatusResponse = zod.object({
+  "configured": zod.boolean(),
+  "authenticated": zod.boolean(),
+  "status": zod.enum(['connected', 'not_configured', 'authentication_failed', 'unavailable']),
+  "message": zod.string(),
+  "checkedAt": zod.coerce.date()
+})
+
+
+/**
+ * Returns PayPal disputes or an explicitly labelled simulated fallback
+ * @summary List PayPal Sandbox disputes
+ */
+export const GetPayPalDisputesResponse = zod.object({
+  "source": zod.enum(['paypal_sandbox', 'simulated_fallback']),
+  "status": zod.enum(['connected', 'fallback']),
+  "isSimulated": zod.boolean(),
+  "message": zod.string(),
+  "errorCode": zod.union([zod.literal('not_configured'),zod.literal('authentication_failed'),zod.literal('paypal_api_error'),zod.literal('network_error'),zod.literal('invalid_response'),zod.literal(null)]).nullable(),
+  "total": zod.number().int(),
+  "disputes": zod.array(zod.object({
+  "id": zod.string().nullable(),
+  "status": zod.string().nullable(),
+  "reason": zod.string().nullable(),
+  "amount": zod.string().nullable(),
+  "currencyCode": zod.string().nullable(),
+  "createdAt": zod.coerce.date().nullable(),
+  "updatedAt": zod.coerce.date().nullable(),
+  "responseDeadline": zod.coerce.date().nullable(),
+  "lifecycleStage": zod.string().nullable(),
+  "channel": zod.string().nullable(),
+  "isSimulated": zod.boolean()
+}))
+})
+
+

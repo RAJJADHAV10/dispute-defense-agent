@@ -52,3 +52,86 @@ export interface ActivityEntry {
   timestamp: string;
 }
 
+export type PayPalStatusStatus = typeof PayPalStatusStatus[keyof typeof PayPalStatusStatus];
+
+
+export const PayPalStatusStatus = {
+  connected: 'connected',
+  not_configured: 'not_configured',
+  authentication_failed: 'authentication_failed',
+  unavailable: 'unavailable',
+} as const;
+
+export interface PayPalStatus {
+  configured: boolean;
+  authenticated: boolean;
+  status: PayPalStatusStatus;
+  message: string;
+  checkedAt: string;
+}
+
+export interface PayPalDisputeSummary {
+  /** @nullable */
+  id: string | null;
+  /** @nullable */
+  status: string | null;
+  /** @nullable */
+  reason: string | null;
+  /** @nullable */
+  amount: string | null;
+  /** @nullable */
+  currencyCode: string | null;
+  /** @nullable */
+  createdAt: string | null;
+  /** @nullable */
+  updatedAt: string | null;
+  /** @nullable */
+  responseDeadline: string | null;
+  /** @nullable */
+  lifecycleStage: string | null;
+  /** @nullable */
+  channel: string | null;
+  isSimulated: boolean;
+}
+
+export type PayPalDisputesResultSource = typeof PayPalDisputesResultSource[keyof typeof PayPalDisputesResultSource];
+
+
+export const PayPalDisputesResultSource = {
+  paypal_sandbox: 'paypal_sandbox',
+  simulated_fallback: 'simulated_fallback',
+} as const;
+
+export type PayPalDisputesResultStatus = typeof PayPalDisputesResultStatus[keyof typeof PayPalDisputesResultStatus];
+
+
+export const PayPalDisputesResultStatus = {
+  connected: 'connected',
+  fallback: 'fallback',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PayPalDisputesResultErrorCode = typeof PayPalDisputesResultErrorCode[keyof typeof PayPalDisputesResultErrorCode] | null;
+
+
+export const PayPalDisputesResultErrorCode = {
+  not_configured: 'not_configured',
+  authentication_failed: 'authentication_failed',
+  paypal_api_error: 'paypal_api_error',
+  network_error: 'network_error',
+  invalid_response: 'invalid_response',
+} as const;
+
+export interface PayPalDisputesResult {
+  source: PayPalDisputesResultSource;
+  status: PayPalDisputesResultStatus;
+  isSimulated: boolean;
+  message: string;
+  /** @nullable */
+  errorCode: PayPalDisputesResultErrorCode;
+  total: number;
+  disputes: PayPalDisputeSummary[];
+}
+

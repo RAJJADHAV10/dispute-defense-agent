@@ -19,7 +19,9 @@ import type {
   ActivityEntry,
   DashboardSummary,
   Dispute,
-  HealthStatus
+  HealthStatus,
+  PayPalDisputesResult,
+  PayPalStatus
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -502,6 +504,162 @@ export function useGetActivity<TData = Awaited<ReturnType<typeof getActivity>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetActivityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPayPalStatusUrl = () => {
+
+
+
+
+  return `/api/paypal/status`
+}
+
+/**
+ * Safely reports whether server-side PayPal Sandbox authentication works
+ * @summary Check PayPal Sandbox authentication
+ */
+export const getPayPalStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<PayPalStatus> => {
+
+  return customFetch<PayPalStatus>(getGetPayPalStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayPalStatusQueryKey = () => {
+    return [
+    `/api/paypal/status`
+    ] as const;
+    }
+
+
+export const getGetPayPalStatusQueryOptions = <TData = Awaited<ReturnType<typeof getPayPalStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayPalStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayPalStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayPalStatus>>> = ({ signal }) => getPayPalStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayPalStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayPalStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getPayPalStatus>>>
+export type GetPayPalStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check PayPal Sandbox authentication
+ */
+
+export function useGetPayPalStatus<TData = Awaited<ReturnType<typeof getPayPalStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayPalStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayPalStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPayPalDisputesUrl = () => {
+
+
+
+
+  return `/api/paypal/disputes`
+}
+
+/**
+ * Returns PayPal disputes or an explicitly labelled simulated fallback
+ * @summary List PayPal Sandbox disputes
+ */
+export const getPayPalDisputes = async ( options?: Parameters<typeof customFetch>[1]): Promise<PayPalDisputesResult> => {
+
+  return customFetch<PayPalDisputesResult>(getGetPayPalDisputesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayPalDisputesQueryKey = () => {
+    return [
+    `/api/paypal/disputes`
+    ] as const;
+    }
+
+
+export const getGetPayPalDisputesQueryOptions = <TData = Awaited<ReturnType<typeof getPayPalDisputes>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayPalDisputes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayPalDisputesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayPalDisputes>>> = ({ signal }) => getPayPalDisputes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayPalDisputes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayPalDisputesQueryResult = NonNullable<Awaited<ReturnType<typeof getPayPalDisputes>>>
+export type GetPayPalDisputesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List PayPal Sandbox disputes
+ */
+
+export function useGetPayPalDisputes<TData = Awaited<ReturnType<typeof getPayPalDisputes>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayPalDisputes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayPalDisputesQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
