@@ -1,44 +1,49 @@
-# [Project name]
+# Dispute Defense Agent
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A demo dispute-review dashboard for small online sellers, backed by an Express API with simulated in-memory cases.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/dispute-defense-agent run dev` — run the React web app
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `GET /api/health` — API health check
+- No payment-provider account, AI service, or database is required for the demo dataset.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/dispute-defense-agent` — React, TypeScript, and Tailwind web dashboard
+- `artifacts/api-server/src/lib/demo-disputes.ts` — in-memory sample cases and activity
+- `artifacts/api-server/src/routes` — health, dispute, summary, and activity endpoints
+- `lib/api-spec/openapi.yaml` — API contract; regenerate client and Zod types after changes
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Keep the first version read-only and backed by clearly simulated data.
+- Suggested actions are static prompts for human review, not AI-generated recommendations.
+- Do not add payment-provider connectivity, claim acceptance, refunds, or evidence submission without a new explicit product request.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+The dashboard summarizes open cases, exposure, deadlines, and resolved demo cases. Sellers can browse cases, inspect details and evidence checklists, and view simulated activity.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+Keep the app responsive, professional, and easy to extend. Make demo data explicit and avoid implying predictions or real payment actions.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The API runs without a database; all case and activity records are in memory and reset when the server restarts.
 
 ## Pointers
 

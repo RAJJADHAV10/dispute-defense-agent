@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Dispute Defense Agent"
+description = "A demo dispute-management dashboard for small online sellers to review payment disputes, deadlines, and evidence preparation. All case data is simulated and no payment-provider or AI services are connected."
+version = "1.0.0"
+id = "artifacts/dispute-defense-agent"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25916
+
+[services.development]
+run = "pnpm --filter @workspace/dispute-defense-agent run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dispute-defense-agent", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/dispute-defense-agent/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25916"
+BASE_PATH = "/"

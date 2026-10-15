@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: disputes
+    description: Simulated dispute case operations
+  - name: dashboard
+    description: Demo dashboard summary and activity
 paths:
   /healthz:
     get:
@@ -24,6 +28,80 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /health:
+    get:
+      operationId: apiHealthCheck
+      tags: [health]
+      summary: API health check
+      description: Returns server health status at the public API health route
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /disputes:
+    get:
+      operationId: getDisputes
+      tags: [disputes]
+      summary: List demo disputes
+      description: Returns the clearly simulated in-memory dispute cases
+      responses:
+        "200":
+          description: Dispute cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dispute"
+  /disputes/{id}:
+    get:
+      operationId: getDispute
+      tags: [disputes]
+      summary: Get a demo dispute
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dispute case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+        "404":
+          description: Dispute not found
+  /dashboard:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /activity:
+    get:
+      operationId: getActivity
+      tags: [dashboard]
+      summary: Get demo activity log
+      responses:
+        "200":
+          description: Activity entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEntry"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +111,94 @@ components:
           type: string
       required:
         - status
+    Dispute:
+      type: object
+      properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        customerName:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        reason:
+          type: string
+        responseDeadline:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [needs_response, under_review, resolved]
+        resolution:
+          type: ["string", "null"]
+        recommendedAction:
+          type: string
+        actionDisclaimer:
+          type: string
+        openedAt:
+          type: string
+          format: date-time
+        orderDescription:
+          type: string
+        customerMessage:
+          type: string
+        evidenceChecklist:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - orderId
+        - customerName
+        - amount
+        - currency
+        - reason
+        - responseDeadline
+        - status
+        - resolution
+        - recommendedAction
+        - actionDisclaimer
+        - openedAt
+        - orderDescription
+        - customerMessage
+        - evidenceChecklist
+    DashboardSummary:
+      type: object
+      properties:
+        openDisputes:
+          type: integer
+        moneyAtRisk:
+          type: number
+        upcomingDeadlines:
+          type: integer
+        casesResolved:
+          type: integer
+      required:
+        - openDisputes
+        - moneyAtRisk
+        - upcomingDeadlines
+        - casesResolved
+    ActivityEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        disputeId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - id
+        - disputeId
+        - title
+        - description
+        - timestamp
 
