@@ -77,6 +77,49 @@ export const GetDisputeResponse = zod.object({
 
 
 /**
+ * Returns an informational AI analysis of a server-side simulated case; no payment actions are performed
+ * @summary Analyze a simulated demo dispute
+ */
+export const AnalyzeDemoDisputeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const analyzeDemoDisputeResponseAnalysisMissingOrWeakEvidenceItemMax = 240;
+
+export const analyzeDemoDisputeResponseAnalysisMissingOrWeakEvidenceMax = 8;
+
+export const analyzeDemoDisputeResponseAnalysisRecommendedEvidenceChecklistItemMax = 240;
+
+export const analyzeDemoDisputeResponseAnalysisRecommendedEvidenceChecklistMax = 8;
+
+export const analyzeDemoDisputeResponseAnalysisExplanationMax = 2000;
+
+export const analyzeDemoDisputeResponseAnalysisConfidenceExplanationMax = 1000;
+
+
+
+export const AnalyzeDemoDisputeResponse = zod.object({
+  "source": zod.enum(['simulated_demo']),
+  "disputeId": zod.string(),
+  "disputeReason": zod.string(),
+  "disputedAmount": zod.number(),
+  "currency": zod.string(),
+  "evidenceCurrentlyAvailable": zod.array(zod.string()),
+  "evidenceAvailabilityNote": zod.string(),
+  "analysis": zod.object({
+  "missingOrWeakEvidence": zod.array(zod.string().max(analyzeDemoDisputeResponseAnalysisMissingOrWeakEvidenceItemMax)).max(analyzeDemoDisputeResponseAnalysisMissingOrWeakEvidenceMax),
+  "recommendedEvidenceChecklist": zod.array(zod.string().max(analyzeDemoDisputeResponseAnalysisRecommendedEvidenceChecklistItemMax)).max(analyzeDemoDisputeResponseAnalysisRecommendedEvidenceChecklistMax),
+  "recommendation": zod.enum(['contest', 'refund_for_seller_review', 'gather_more_evidence']),
+  "explanation": zod.string().max(analyzeDemoDisputeResponseAnalysisExplanationMax),
+  "confidence": zod.enum(['low', 'medium', 'high']),
+  "confidenceExplanation": zod.string().max(analyzeDemoDisputeResponseAnalysisConfidenceExplanationMax)
+}),
+  "responseDeadline": zod.coerce.date().nullable(),
+  "disclaimer": zod.string()
+})
+
+
+/**
  * @summary Get dashboard summary
  */
 export const GetDashboardSummaryResponse = zod.object({

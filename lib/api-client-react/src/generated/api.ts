@@ -6,11 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -19,6 +23,8 @@ import type {
   ActivityEntry,
   DashboardSummary,
   Dispute,
+  DisputeAnalysis,
+  DisputeAnalysisError,
   HealthStatus,
   PayPalDisputesResult,
   PayPalStatus
@@ -361,6 +367,81 @@ export function useGetDispute<TData = Awaited<ReturnType<typeof getDispute>>, TE
 
 
 
+
+export const getAnalyzeDemoDisputeUrl = (id: string,) => {
+
+
+
+
+  return `/api/demo/disputes/${id}/analyze`
+}
+
+/**
+ * Returns an informational AI analysis of a server-side simulated case; no payment actions are performed
+ * @summary Analyze a simulated demo dispute
+ */
+export const analyzeDemoDispute = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<DisputeAnalysis> => {
+
+  return customFetch<DisputeAnalysis>(getAnalyzeDemoDisputeUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAnalyzeDemoDisputeMutationKey = () => ['analyzeDemoDispute'] as const;
+
+export const getAnalyzeDemoDisputeMutationOptions = <TError = ErrorType<DisputeAnalysisError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeDemoDispute>>, TError,AnalyzeDemoDisputeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeDemoDispute>>, TError,AnalyzeDemoDisputeMutationVariables, TContext> => {
+
+const mutationKey = getAnalyzeDemoDisputeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeDemoDispute>>, AnalyzeDemoDisputeMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  analyzeDemoDispute(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeDemoDisputeMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeDemoDispute>>>
+
+    export type AnalyzeDemoDisputeMutationError = ErrorType<DisputeAnalysisError>
+    export type AnalyzeDemoDisputeMutationVariables = {id: string}
+
+    /**
+ * @summary Analyze a simulated demo dispute
+ */
+export const useAnalyzeDemoDispute = <TError = ErrorType<DisputeAnalysisError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeDemoDispute>>, TError,AnalyzeDemoDisputeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeDemoDispute>>,
+        TError,
+        AnalyzeDemoDisputeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAnalyzeDemoDisputeMutationOptions(options));
+    }
 
 export const getGetDashboardSummaryUrl = () => {
 

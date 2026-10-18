@@ -1,8 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getApiHealthCheckQueryKey, getGetDisputeQueryKey, useApiHealthCheck, useGetActivity, useGetDashboardSummary, useGetDispute, useGetDisputes, useGetPayPalDisputes, useGetPayPalStatus } from '@workspace/api-client-react';
-import type { ActivityEntry, Dispute, PayPalDisputeSummary } from '@workspace/api-client-react';
-import { Activity, AlertCircle, ArrowLeft, ArrowRight, Check, ClipboardList, Clock3, CreditCard, FileCheck2, LayoutDashboard, RefreshCw, Search, ShieldCheck } from 'lucide-react';
+import { getApiHealthCheckQueryKey, getGetDisputeQueryKey, useAnalyzeDemoDispute, useApiHealthCheck, useGetActivity, useGetDashboardSummary, useGetDispute, useGetDisputes, useGetPayPalDisputes, useGetPayPalStatus } from '@workspace/api-client-react';
+import type { ActivityEntry, Dispute, DisputeAnalysis, PayPalDisputeSummary } from '@workspace/api-client-react';
+import { Activity, AlertCircle, ArrowLeft, ArrowRight, Check, ClipboardList, Clock3, CreditCard, FileCheck2, LayoutDashboard, RefreshCw, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -61,10 +61,11 @@ function DataState({ loading, error, retry, empty, children }: { loading?: boole
   return <>{children}</>;
 }
 
-function CaseRow({ dispute }: { dispute: Dispute }) {
+function CaseRow({ dispute, onAnalyze, analysisPending = false, analyzingId }: { dispute: Dispute; onAnalyze?: (id: string) => void; analysisPending?: boolean; analyzingId?: string | null }) {
+  const isAnalyzing = analysisPending && analyzingId === dispute.id;
   return (
-    <Link href={`/disputes/${encodeURIComponent(dispute.id)}`} className="case-row" role="row" data-testid={`link-dispute-${dispute.id}`}>
-      <span className="case-id case-cell" role="cell" data-label="Case ID">{dispute.id}</span>
+    <div className={`case-row ${onAnalyze ? 'has-analysis' : ''}`} role="row" data-testid={`row-dispute-${dispute.id}`}>
+      <span className="case-id case-cell" role="cell" data-label="Case ID"><Link href={`/disputes/${encodeURIComponent(dispute.id)}`} className="case-id-link" data-testid={`link-dispute-${dispute.id}`}>{dispute.id}</Link></span>
       <span className="case-amount case-cell" role="cell" data-label="Order Amount">{money(dispute.amount, dispute.currency)}</span>
       <span className="case-reason case-cell" role="cell" data-label="Dispute Reason">{dispute.reason}</span>
       <span className="case-deadline case-cell" role="cell" data-label="Response Deadline">{dateLabel(dispute.responseDeadline, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
@@ -73,21 +74,79 @@ function CaseRow({ dispute }: { dispute: Dispute }) {
         <span>{dispute.recommendedAction}</span>
         <small>Static demo guidance · not an AI prediction</small>
       </span>
-    </Link>
+      {onAnalyze && <span className="case-analysis case-cell" role="cell" data-label="AI analysis"><button className="analysis-button" onClick={() => onAnalyze(dispute.id)} disabled={analysisPending} aria-label={`Analyze simulated dispute ${dispute.id}`} data-testid={`button-analyze-${dispute.id}`}>{isAnalyzing ? <RefreshCw size={13} className="spin" /> : <Sparkles size={13} />}{isAnalyzing ? 'Analyzing' : 'Analyze'}</button></span>}
+    </div>
   );
 }
 
-function CaseList({ disputes, loading, error, retry, compact = false }: { disputes?: Dispute[]; loading: boolean; error: boolean; retry: () => void; compact?: boolean }) {
+function CaseList({ disputes, loading, error, retry, compact = false, showAnalyze = false, onAnalyze, analysisPending = false, analyzingId }: { disputes?: Dispute[]; loading: boolean; error: boolean; retry: () => void; compact?: boolean; showAnalyze?: boolean; onAnalyze?: (id: string) => void; analysisPending?: boolean; analyzingId?: string | null }) {
   const records = disputes ?? [];
   return (
     <>
       <div className="case-table" role="table" aria-label="Simulated disputes">
-        {!compact && <div className="table-head" role="row"><span role="columnheader">Case ID</span><span role="columnheader">Order Amount</span><span role="columnheader">Dispute Reason</span><span role="columnheader">Response Deadline</span><span role="columnheader">Status</span><span role="columnheader">Recommended Action</span></div>}
+        {!compact && <div className={`table-head ${showAnalyze ? 'has-analysis' : ''}`} role="row"><span role="columnheader">Case ID</span><span role="columnheader">Order Amount</span><span role="columnheader">Dispute Reason</span><span role="columnheader">Response Deadline</span><span role="columnheader">Status</span><span role="columnheader">Recommended Action</span>{showAnalyze && <span role="columnheader">AI analysis</span>}</div>}
         <DataState loading={loading} error={error} retry={retry} empty={!loading && !error && records.length === 0}>
-          {records.map((item) => <CaseRow key={item.id} dispute={item} />)}
+          {records.map((item) => <CaseRow key={item.id} dispute={item} onAnalyze={showAnalyze ? onAnalyze : undefined} analysisPending={analysisPending} analyzingId={analyzingId} />)}
         </DataState>
       </div>
     </>
+  );
+}
+
+function recommendationLabel(recommendation: DisputeAnalysis['analysis']['recommendation']) {
+  if (recommendation === 'refund_for_seller_review') return 'Refund for seller review';
+  if (recommendation === 'gather_more_evidence') return 'Gather more evidence';
+  return 'Contest';
+}
+
+function AnalysisItems({ items, emptyText }: { items: string[]; emptyText: string }) {
+  if (items.length === 0) return <p className="analysis-empty-copy">{emptyText}</p>;
+  return <ul className="analysis-list">{items.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>;
+}
+
+function DisputeAnalysisPanel({ result }: { result: DisputeAnalysis }) {
+  return (
+    <section className="panel analysis-panel" aria-labelledby="analysis-panel-title" data-testid="panel-dispute-analysis">
+      <div className="analysis-panel-head">
+        <div>
+          <div className="analysis-source"><Sparkles size={13} /> AI-generated · simulated demo case</div>
+          <h2 id="analysis-panel-title">Evidence analysis</h2>
+          <p>Case {result.disputeId} · informational review only</p>
+        </div>
+        <span className={`analysis-confidence confidence-${result.analysis.confidence}`} data-testid="text-analysis-confidence">Confidence: {result.analysis.confidence}</span>
+      </div>
+
+      <div className="analysis-facts">
+        <div><div className="analysis-label">Dispute reason</div><strong>{result.disputeReason}</strong></div>
+        <div><div className="analysis-label">Amount</div><strong>{money(result.disputedAmount, result.currency)}</strong></div>
+        <div><div className="analysis-label">Response deadline</div><strong>{optionalDateLabel(result.responseDeadline)}</strong></div>
+      </div>
+
+      <div className="analysis-recommendation" data-testid="text-analysis-recommendation">
+        <div className="analysis-label">Recommendation · seller review only</div>
+        <strong>{recommendationLabel(result.analysis.recommendation)}</strong>
+        <p>{result.analysis.explanation}</p>
+        <div className="analysis-confidence-note"><strong>Confidence rationale:</strong> {result.analysis.confidenceExplanation}</div>
+      </div>
+
+      <div className="analysis-sections">
+        <section className="analysis-subsection">
+          <h3>Evidence currently available</h3>
+          <AnalysisItems items={result.evidenceCurrentlyAvailable} emptyText="No evidence files or verified seller records are attached to this demo case." />
+          <p className="analysis-source-note">{result.evidenceAvailabilityNote}</p>
+        </section>
+        <section className="analysis-subsection">
+          <h3>Missing or weak evidence</h3>
+          <AnalysisItems items={result.analysis.missingOrWeakEvidence} emptyText="The analysis did not identify specific evidence gaps." />
+        </section>
+        <section className="analysis-subsection">
+          <h3>Recommended evidence checklist</h3>
+          <AnalysisItems items={result.analysis.recommendedEvidenceChecklist} emptyText="No additional checklist items were generated." />
+        </section>
+      </div>
+
+      <div className="analysis-disclaimer"><AlertCircle size={15} /><span>{result.disclaimer}</span></div>
+    </section>
   );
 }
 
@@ -172,10 +231,24 @@ function DisputesPage() {
   const query = useGetDisputes();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  const [analysisCaseId, setAnalysisCaseId] = useState<string | null>(null);
+  const analysis = useAnalyzeDemoDispute();
   const records = useMemo(() => (query.data ?? []).filter((item) => {
     const textMatch = `${item.customerName} ${item.orderId} ${item.id} ${item.reason}`.toLowerCase().includes(search.toLowerCase());
     return textMatch && (status === 'all' || item.status === status);
   }), [query.data, search, status]);
+  const startAnalysis = (id: string) => {
+    analysis.reset();
+    setAnalysisCaseId(id);
+    analysis.mutate({ id });
+  };
+  const errorData = analysis.error && typeof analysis.error === 'object' && 'data' in analysis.error
+    ? (analysis.error as { data?: unknown }).data
+    : undefined;
+  const errorMessage = errorData && typeof errorData === 'object' && 'error' in errorData && typeof errorData.error === 'string'
+    ? errorData.error
+    : 'AI analysis could not be completed. Check the server configuration or try again.';
+  const analysisResult = analysis.data?.disputeId === analysisCaseId ? analysis.data : undefined;
   return (
     <div className="content">
       <PageIntro eyebrow="Case register · simulated" title="Disputes" subtitle="Review each simulated case, its disputed amount, and its response deadline." />
@@ -187,8 +260,11 @@ function DisputesPage() {
       </div>
       <div className="section-heading"><h2>Case list</h2><span>Amounts in the listed currency</span></div>
       <div className="panel case-list">
-        <CaseList disputes={records} loading={query.isLoading} error={query.isError} retry={() => query.refetch()} />
+        <CaseList disputes={records} loading={query.isLoading} error={query.isError} retry={() => query.refetch()} showAnalyze onAnalyze={startAnalysis} analysisPending={analysis.isPending} analyzingId={analysisCaseId} />
       </div>
+      {analysis.isPending && <div className="panel analysis-loading" role="status" data-testid="state-analysis-loading"><RefreshCw size={16} className="spin" /><div><strong>Analyzing {analysisCaseId}</strong><span>OpenAI is reviewing the simulated case data. No payment action is taken.</span></div></div>}
+      {analysis.isError && <div className="panel analysis-error" role="alert" data-testid="state-analysis-error"><AlertCircle size={17} /><div><strong>Analysis unavailable</strong><span>{errorMessage}</span></div><button className="retry-button" onClick={() => analysisCaseId && startAnalysis(analysisCaseId)} disabled={analysis.isPending} data-testid="button-retry-analysis">Try again</button></div>}
+      {analysisResult && <DisputeAnalysisPanel result={analysisResult} />}
     </div>
   );
 }

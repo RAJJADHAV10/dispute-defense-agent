@@ -37,6 +37,83 @@ export interface Dispute {
   evidenceChecklist: string[];
 }
 
+export type DisputeAnalysisModelContentRecommendation = typeof DisputeAnalysisModelContentRecommendation[keyof typeof DisputeAnalysisModelContentRecommendation];
+
+
+export const DisputeAnalysisModelContentRecommendation = {
+  contest: 'contest',
+  refund_for_seller_review: 'refund_for_seller_review',
+  gather_more_evidence: 'gather_more_evidence',
+} as const;
+
+export type DisputeAnalysisModelContentConfidence = typeof DisputeAnalysisModelContentConfidence[keyof typeof DisputeAnalysisModelContentConfidence];
+
+
+export const DisputeAnalysisModelContentConfidence = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface DisputeAnalysisModelContent {
+  /**
+     * @maxItems 8
+     * @items.maxLength 240
+     */
+  missingOrWeakEvidence: string[];
+  /**
+     * @maxItems 8
+     * @items.maxLength 240
+     */
+  recommendedEvidenceChecklist: string[];
+  recommendation: DisputeAnalysisModelContentRecommendation;
+  /** @maxLength 2000 */
+  explanation: string;
+  confidence: DisputeAnalysisModelContentConfidence;
+  /** @maxLength 1000 */
+  confidenceExplanation: string;
+}
+
+export type DisputeAnalysisSource = typeof DisputeAnalysisSource[keyof typeof DisputeAnalysisSource];
+
+
+export const DisputeAnalysisSource = {
+  simulated_demo: 'simulated_demo',
+} as const;
+
+export interface DisputeAnalysis {
+  source: DisputeAnalysisSource;
+  disputeId: string;
+  disputeReason: string;
+  disputedAmount: number;
+  currency: string;
+  evidenceCurrentlyAvailable: string[];
+  evidenceAvailabilityNote: string;
+  analysis: DisputeAnalysisModelContent;
+  /** @nullable */
+  responseDeadline: string | null;
+  disclaimer: string;
+}
+
+export type DisputeAnalysisErrorCode = typeof DisputeAnalysisErrorCode[keyof typeof DisputeAnalysisErrorCode];
+
+
+export const DisputeAnalysisErrorCode = {
+  invalid_request: 'invalid_request',
+  dispute_not_found: 'dispute_not_found',
+  openai_not_configured: 'openai_not_configured',
+  openai_authentication_failed: 'openai_authentication_failed',
+  openai_rate_limited: 'openai_rate_limited',
+  openai_unavailable: 'openai_unavailable',
+  invalid_openai_response: 'invalid_openai_response',
+  openai_timeout: 'openai_timeout',
+} as const;
+
+export interface DisputeAnalysisError {
+  error: string;
+  code: DisputeAnalysisErrorCode;
+}
+
 export interface DashboardSummary {
   openDisputes: number;
   moneyAtRisk: number;

@@ -12,7 +12,9 @@ A demo dispute-review dashboard for small online sellers, backed by an Express A
 - `GET /api/health` — API health check
 - `GET /api/paypal/status` — safely test PayPal Sandbox OAuth using server-side secrets
 - `GET /api/paypal/disputes` — read the PayPal Sandbox dispute list, or a labelled demo fallback
+- `POST /api/demo/disputes/{id}/analyze` — request an informational OpenAI analysis of a simulated case
 - The demo dataset does not require PayPal credentials; Sandbox endpoints use `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` from Replit Secrets.
+- AI analysis uses `OPENAI_API_KEY` from Replit Secrets and only receives server-loaded simulated case data.
 
 ## Stack
 
@@ -28,24 +30,26 @@ A demo dispute-review dashboard for small online sellers, backed by an Express A
 - `artifacts/dispute-defense-agent` — React, TypeScript, and Tailwind web dashboard
 - `artifacts/api-server/src/lib/demo-disputes.ts` — in-memory sample cases and activity
 - `artifacts/api-server/src/lib/paypal-client.ts` — server-only PayPal Sandbox OAuth and read client
+- `artifacts/api-server/src/lib/openai-dispute-analysis.ts` — server-only structured OpenAI analysis for simulated disputes
 - `artifacts/api-server/src/routes` — health, demo, and PayPal endpoints
 - `lib/api-spec/openapi.yaml` — API contract; regenerate client and Zod types after changes
 
 ## Architecture decisions
 
 - Keep the first version read-only and backed by clearly simulated data.
-- Suggested actions are static prompts for human review, not AI-generated recommendations.
+- Existing suggested actions remain static prompts for human review; the separate Analyze action requests a live, structured OpenAI analysis of simulated cases only.
 - PayPal integration is Sandbox-only and read-only; all API credentials and access tokens remain on the server.
+- Simulated disputes are never sent to PayPal. AI output is informational, must explain uncertainty, and does not perform a payment action.
 - PayPal API failures return the existing simulated cases only with an explicit `simulated_fallback` source marker.
 - Do not add payment-provider connectivity, claim acceptance, refunds, or evidence submission without a new explicit product request.
 
 ## Product
 
-The dashboard summarizes open demo cases, exposure, deadlines, and resolved demo cases. Sellers can browse cases, inspect details and evidence checklists, and view simulated activity. PayPal Sandbox status and disputes are available through read-only API endpoints; the dashboard does not present demo cases as PayPal disputes.
+The dashboard summarizes open demo cases, exposure, deadlines, and resolved demo cases. Sellers can browse cases, inspect details and evidence checklists, request AI analysis of simulated cases, and view simulated activity. PayPal Sandbox status and disputes are available through read-only API endpoints; the dashboard does not present demo cases as PayPal disputes.
 
 ## User preferences
 
-Keep the app responsive, professional, and easy to extend. Make demo data explicit and avoid implying predictions or real payment actions.
+Keep the app responsive, professional, and easy to extend. Make demo data explicit, explain AI uncertainty, and avoid implying predictions or real payment actions.
 
 ## Gotchas
 

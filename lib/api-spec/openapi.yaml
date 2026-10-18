@@ -16,6 +16,8 @@ tags:
     description: Demo dashboard summary and activity
   - name: paypal
     description: Read-only PayPal Sandbox diagnostics and disputes
+  - name: ai-analysis
+    description: AI analysis of simulated demo disputes only
 paths:
   /healthz:
     get:
@@ -78,6 +80,55 @@ paths:
                 $ref: "#/components/schemas/Dispute"
         "404":
           description: Dispute not found
+  /demo/disputes/{id}/analyze:
+    post:
+      operationId: analyzeDemoDispute
+      tags: [ai-analysis]
+      summary: Analyze a simulated demo dispute
+      description: Returns an informational AI analysis of a server-side simulated case; no payment actions are performed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: AI analysis of a simulated demo dispute
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeAnalysis"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeAnalysisError"
+        "404":
+          description: Simulated dispute not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeAnalysisError"
+        "502":
+          description: AI provider returned an error or an invalid response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeAnalysisError"
+        "503":
+          description: AI provider is not configured or temporarily rate-limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeAnalysisError"
+        "504":
+          description: AI provider request timed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeAnalysisError"
   /dashboard:
     get:
       operationId: getDashboardSummary
@@ -193,6 +244,100 @@ components:
         - orderDescription
         - customerMessage
         - evidenceChecklist
+    DisputeAnalysisModelContent:
+      type: object
+      additionalProperties: false
+      properties:
+        missingOrWeakEvidence:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            maxLength: 240
+        recommendedEvidenceChecklist:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            maxLength: 240
+        recommendation:
+          type: string
+          enum: [contest, refund_for_seller_review, gather_more_evidence]
+        explanation:
+          type: string
+          maxLength: 2000
+        confidence:
+          type: string
+          enum: [low, medium, high]
+        confidenceExplanation:
+          type: string
+          maxLength: 1000
+      required:
+        - missingOrWeakEvidence
+        - recommendedEvidenceChecklist
+        - recommendation
+        - explanation
+        - confidence
+        - confidenceExplanation
+    DisputeAnalysis:
+      type: object
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+          enum: [simulated_demo]
+        disputeId:
+          type: string
+        disputeReason:
+          type: string
+        disputedAmount:
+          type: number
+        currency:
+          type: string
+        evidenceCurrentlyAvailable:
+          type: array
+          items:
+            type: string
+        evidenceAvailabilityNote:
+          type: string
+        analysis:
+          $ref: "#/components/schemas/DisputeAnalysisModelContent"
+        responseDeadline:
+          type: ["string", "null"]
+          format: date-time
+        disclaimer:
+          type: string
+      required:
+        - source
+        - disputeId
+        - disputeReason
+        - disputedAmount
+        - currency
+        - evidenceCurrentlyAvailable
+        - evidenceAvailabilityNote
+        - analysis
+        - responseDeadline
+        - disclaimer
+    DisputeAnalysisError:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          enum:
+            - invalid_request
+            - dispute_not_found
+            - openai_not_configured
+            - openai_authentication_failed
+            - openai_rate_limited
+            - openai_unavailable
+            - invalid_openai_response
+            - openai_timeout
+      required:
+        - error
+        - code
     DashboardSummary:
       type: object
       properties:
