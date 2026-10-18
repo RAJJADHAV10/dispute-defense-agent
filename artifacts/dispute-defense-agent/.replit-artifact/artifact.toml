@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "Dispute Defense Agent"
-description = "A demo dispute-management dashboard for small online sellers to review payment disputes, deadlines, and evidence preparation. All case data is simulated and no payment-provider or AI services are connected."
+description = "A dispute-review dashboard for small online sellers. It keeps simulated demo cases separate from read-only PayPal Sandbox dispute data; it does not use production PayPal data, AI recommendations, refunds, or evidence submissions."
 version = "1.0.0"
 id = "artifacts/dispute-defense-agent"
 router = "path"

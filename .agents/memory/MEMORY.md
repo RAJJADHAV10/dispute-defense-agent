@@ -1,0 +1,1 @@
+- [TypeScript test runtime](typescript-test-runtime.md) — Node 24’s strip-only loader cannot directly execute API TypeScript with parameter properties or extensionless workspace exports.

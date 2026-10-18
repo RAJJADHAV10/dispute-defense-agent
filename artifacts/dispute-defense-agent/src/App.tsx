@@ -1,8 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getApiHealthCheckQueryKey, getGetDisputeQueryKey, useApiHealthCheck, useGetActivity, useGetDashboardSummary, useGetDispute, useGetDisputes } from '@workspace/api-client-react';
-import type { ActivityEntry, Dispute } from '@workspace/api-client-react';
-import { Activity, AlertCircle, ArrowLeft, ArrowRight, Check, ClipboardList, Clock3, FileCheck2, LayoutDashboard, Search, ShieldCheck } from 'lucide-react';
+import { getApiHealthCheckQueryKey, getGetDisputeQueryKey, useApiHealthCheck, useGetActivity, useGetDashboardSummary, useGetDispute, useGetDisputes, useGetPayPalDisputes, useGetPayPalStatus } from '@workspace/api-client-react';
+import type { ActivityEntry, Dispute, PayPalDisputeSummary } from '@workspace/api-client-react';
+import { Activity, AlertCircle, ArrowLeft, ArrowRight, Check, ClipboardList, Clock3, CreditCard, FileCheck2, LayoutDashboard, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -14,6 +14,7 @@ const queryClient = new QueryClient();
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
   { href: '/disputes', label: 'Disputes', icon: ClipboardList },
+  { href: '/paypal-sandbox', label: 'PayPal Sandbox', icon: CreditCard },
   { href: '/evidence', label: 'Evidence', icon: FileCheck2 },
   { href: '/activity', label: 'Activity Log', icon: Activity },
 ];
@@ -26,6 +27,23 @@ function dateLabel(value: string, options?: Intl.DateTimeFormatOptions) {
 
 function money(amount: number, currency = 'USD') {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
+}
+
+function paypalMoney(amount: string | null, currency: string | null) {
+  if (!amount) return '—';
+  const numeric = Number(amount);
+  if (Number.isFinite(numeric) && currency && /^[A-Z]{3}$/.test(currency)) {
+    try {
+      return money(numeric, currency);
+    } catch {
+      return `${amount} ${currency}`;
+    }
+  }
+  return `${amount}${currency ? ` ${currency}` : ''}`;
+}
+
+function optionalDateLabel(value: string | null) {
+  return value ? dateLabel(value, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not provided';
 }
 
 function statusLabel(status: Dispute['status']) {
@@ -75,6 +93,7 @@ function CaseList({ disputes, loading, error, retry, compact = false }: { disput
 
 function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const isSandboxRoute = location === '/paypal-sandbox';
   const health = useApiHealthCheck({ query: { queryKey: getApiHealthCheckQueryKey(), refetchInterval: 60_000 } });
   const label = location === '/' ? 'Overview' : location.startsWith('/disputes/') ? 'Case details' : navItems.find((item) => item.href === location)?.label ?? 'Workspace';
   return (
@@ -84,7 +103,7 @@ function Shell({ children }: { children: ReactNode }) {
           <div className="brand-mark"><ShieldCheck size={19} /></div>
           <div><div className="brand-name">Dispute Defense</div><div className="brand-sub">Seller workspace</div></div>
         </Link>
-        <div className="demo-flag"><span className="demo-dot" /> Simulated data only</div>
+        <div className={`demo-flag ${isSandboxRoute ? 'sandbox-flag' : ''}`}><span className="demo-dot" />{isSandboxRoute ? 'PayPal Sandbox · read-only' : 'Demo data · simulated'}</div>
         <div className="nav-label">Workspace</div>
         <nav className="nav-list" aria-label="Main navigation">
           {navItems.map(({ href, label: itemLabel, icon: Icon }) => (
@@ -94,14 +113,14 @@ function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="side-bottom">
-          <div className="connection"><span className={`connection-dot ${health.isSuccess ? 'online' : ''}`} />{health.isLoading ? 'Checking service' : health.isError ? 'Service unavailable' : 'Demo service available'}</div>
-          <p className="side-note">Connection status checks this demo service only. No payment account is connected.</p>
+          <div className="connection"><span className={`connection-dot ${health.isSuccess ? 'online' : ''}`} />{health.isLoading ? 'Checking API' : health.isError ? 'API unavailable' : 'Application API available'}</div>
+          <p className="side-note">This checks the application API. PayPal Sandbox status is verified separately.</p>
         </div>
       </aside>
       <main className="main-area">
         <header className="topbar">
           <div className="breadcrumb">Demo workspace <span style={{ padding: '0 7px', color: '#b0aca2' }}>/</span> {label}</div>
-          <div className="top-right"><span className="top-demo">Demo · simulated records</span><div className="owner"><span className="owner-mark">SD</span> Seller desk</div></div>
+          <div className="top-right"><span className={`top-demo ${isSandboxRoute ? 'top-sandbox' : ''}`}>{isSandboxRoute ? 'PayPal Sandbox · read-only' : 'Demo · simulated records'}</span><div className="owner"><span className="owner-mark">SD</span> Seller desk</div></div>
         </header>
         {children}
       </main>
@@ -170,6 +189,112 @@ function DisputesPage() {
       <div className="panel case-list">
         <CaseList disputes={records} loading={query.isLoading} error={query.isError} retry={() => query.refetch()} />
       </div>
+    </div>
+  );
+}
+
+function PayPalSandboxPage() {
+  const statusQuery = useGetPayPalStatus();
+  const disputesQuery = useGetPayPalDisputes();
+  const result = disputesQuery.data;
+  const actualSandboxResult = result?.source === 'paypal_sandbox' && !result.isSimulated;
+  const simulatedResult = Boolean(result && !actualSandboxResult);
+  const oauthStatus = statusQuery.isLoading
+    ? 'Checking OAuth'
+    : statusQuery.isError
+      ? 'Status unavailable'
+      : statusQuery.data?.authenticated
+        ? 'Authenticated'
+        : 'Not authenticated';
+
+  const refresh = () => {
+    void statusQuery.refetch();
+    void disputesQuery.refetch();
+  };
+
+  return (
+    <div className="content">
+      <PageIntro
+        eyebrow="Read-only provider view"
+        title="PayPal Sandbox disputes"
+        subtitle="Sandbox results are kept separate from the simulated demo cases in the rest of this workspace."
+        action={<button className="sandbox-refresh" onClick={refresh} disabled={statusQuery.isFetching || disputesQuery.isFetching} data-testid="button-refresh-paypal"><RefreshCw size={14} /> Refresh Sandbox data</button>}
+      />
+
+      <div className="sandbox-status-grid">
+        <section className="panel sandbox-status-card" data-testid="card-paypal-oauth">
+          <div className="sandbox-card-label">Sandbox OAuth</div>
+          <div className="sandbox-status-line">
+            <span className={`sandbox-connection-state ${statusQuery.data?.authenticated ? 'connected' : statusQuery.isError ? 'unavailable' : ''}`} data-testid="status-paypal-oauth">{oauthStatus}</span>
+            <span className="sandbox-readonly-label">Read-only</span>
+          </div>
+          <p>{statusQuery.data?.message ?? (statusQuery.isError ? 'The application could not retrieve PayPal Sandbox authentication status.' : 'Checking the PayPal Sandbox connection using server-side credentials.')}</p>
+        </section>
+        <section className="panel sandbox-status-card">
+          <div className="sandbox-card-label">Safety boundary</div>
+          <div className="sandbox-boundary-title"><ShieldCheck size={17} /> No payment actions</div>
+          <p>This view only reads dispute data from PayPal Sandbox. It cannot accept disputes, issue refunds, or submit evidence.</p>
+        </section>
+      </div>
+
+      {disputesQuery.isLoading && <div className="panel sandbox-empty" role="status" data-testid="state-paypal-loading"><div className="skeleton-line" /><div className="skeleton-line short" /><p>Requesting dispute data from the application API.</p></div>}
+
+      {disputesQuery.isError && (
+        <div className="panel sandbox-empty sandbox-error" role="alert" data-testid="state-paypal-error">
+          <AlertCircle size={20} />
+          <strong>Could not retrieve a dispute result.</strong>
+          <p>The application API did not return either Sandbox data or its labelled demo fallback. No cases are shown in this state.</p>
+          <button className="retry-button" onClick={refresh} data-testid="button-retry-paypal">Try again</button>
+        </div>
+      )}
+
+      {!disputesQuery.isLoading && !disputesQuery.isError && result && (
+        <>
+          <div className={`sandbox-source-banner ${actualSandboxResult ? 'source-actual' : 'source-simulated'}`} role="status" data-testid="status-paypal-data-source">
+            <span className="sandbox-source-icon">{actualSandboxResult ? <ShieldCheck size={17} /> : <AlertCircle size={17} />}</span>
+            <div className="sandbox-source-copy">
+              <strong>{actualSandboxResult ? 'Source: PayPal Sandbox API' : 'Source: simulated demo fallback · not PayPal data'}</strong>
+              <span>{result.message}{actualSandboxResult ? ' This is Sandbox data, not production account data.' : ' These cases must not be treated as PayPal disputes.'}</span>
+              {simulatedResult && result.errorCode && <small>Sandbox error category: {result.errorCode}</small>}
+            </div>
+            <span className="sandbox-count" data-testid="text-paypal-dispute-count">{result.total} {result.total === 1 ? 'case' : 'cases'}</span>
+          </div>
+
+          {result.disputes.length === 0 ? (
+            <div className="panel sandbox-empty" data-testid="state-paypal-empty">
+              <div className="empty-mark"><CreditCard size={18} /></div>
+              <strong>{actualSandboxResult ? 'No PayPal Sandbox disputes found.' : 'No simulated fallback cases are available.'}</strong>
+              <p>{actualSandboxResult ? 'The authenticated Sandbox request succeeded and returned an empty dispute list. No demo records have been substituted.' : 'The current result contains no cases. Demo and Sandbox records remain separate.'}</p>
+            </div>
+          ) : (
+            <>
+              <div className="section-heading sandbox-list-heading">
+                <h2>{actualSandboxResult ? 'Sandbox dispute list' : 'Simulated fallback cases'}</h2>
+                <span>{actualSandboxResult ? 'PayPal Sandbox response' : 'Not provider data'}</span>
+              </div>
+              <div className="panel sandbox-table" role="table" aria-label={actualSandboxResult ? 'PayPal Sandbox disputes' : 'Simulated fallback disputes'} data-testid="table-paypal-disputes">
+                <div className="sandbox-table-head" role="row">
+                  <span role="columnheader">Case ID</span><span role="columnheader">Amount</span><span role="columnheader">Reason</span><span role="columnheader">PayPal Status</span><span role="columnheader">Response Deadline</span>
+                </div>
+                {result.disputes.map((dispute, index) => <PayPalDisputeRow key={dispute.id ?? `missing-${index}`} dispute={dispute} index={index} />)}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PayPalDisputeRow({ dispute, index }: { dispute: PayPalDisputeSummary; index: number }) {
+  const id = dispute.id ?? 'ID unavailable';
+  return (
+    <div className={`sandbox-row ${dispute.isSimulated ? 'sandbox-row-simulated' : ''}`} role="row" data-testid={`row-paypal-dispute-${index}`}>
+      <span className="sandbox-cell sandbox-case-id" role="cell" data-label="Case ID">{id}</span>
+      <span className="sandbox-cell sandbox-case-amount" role="cell" data-label="Amount">{paypalMoney(dispute.amount, dispute.currencyCode)}</span>
+      <span className="sandbox-cell" role="cell" data-label="Reason">{dispute.reason ?? 'Not provided'}</span>
+      <span className="sandbox-cell" role="cell" data-label="PayPal Status"><span className={`sandbox-status-pill ${dispute.isSimulated ? 'simulated' : ''}`} data-testid={`status-paypal-dispute-${index}`}>{dispute.status?.replaceAll('_', ' ').toLowerCase() ?? 'Not provided'}{dispute.isSimulated ? ' · demo' : ''}</span></span>
+      <span className="sandbox-cell" role="cell" data-label="Response Deadline">{optionalDateLabel(dispute.responseDeadline)}</span>
     </div>
   );
 }
@@ -249,6 +374,7 @@ function Router() {
         <Switch>
           <Route path="/" component={OverviewPage} />
           <Route path="/disputes" component={DisputesPage} />
+          <Route path="/paypal-sandbox" component={PayPalSandboxPage} />
           <Route path="/evidence" component={EvidencePage} />
           <Route path="/activity" component={ActivityPage} />
           <Route path="/disputes/:id" component={DisputeDetailPage} />
