@@ -332,6 +332,7 @@ components:
             - openai_not_configured
             - openai_authentication_failed
             - openai_rate_limited
+            - openai_quota_exceeded
             - openai_unavailable
             - invalid_openai_response
             - openai_timeout

@@ -20,7 +20,9 @@ function analysisError(code: string): { error: string; code: string } {
     openai_authentication_failed:
       "The AI provider rejected its server-side credentials. Check OPENAI_API_KEY in Replit Secrets.",
     openai_rate_limited:
-      "AI analysis is temporarily rate-limited. Try again later.",
+      "OpenAI is temporarily rate-limiting requests. Try again shortly.",
+    openai_quota_exceeded:
+      "The OpenAI API account has no available quota. Check its billing and usage limits.",
     openai_unavailable:
       "The AI provider is temporarily unavailable. Try again later.",
     invalid_openai_response:

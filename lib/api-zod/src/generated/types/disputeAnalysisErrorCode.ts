@@ -15,6 +15,7 @@ export const DisputeAnalysisErrorCode = {
   openai_not_configured: 'openai_not_configured',
   openai_authentication_failed: 'openai_authentication_failed',
   openai_rate_limited: 'openai_rate_limited',
+  openai_quota_exceeded: 'openai_quota_exceeded',
   openai_unavailable: 'openai_unavailable',
   invalid_openai_response: 'invalid_openai_response',
   openai_timeout: 'openai_timeout',

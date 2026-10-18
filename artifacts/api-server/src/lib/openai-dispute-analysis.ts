@@ -7,6 +7,7 @@ export type AnalysisFailureCode =
   | "openai_not_configured"
   | "openai_authentication_failed"
   | "openai_rate_limited"
+  | "openai_quota_exceeded"
   | "openai_unavailable"
   | "invalid_openai_response"
   | "openai_timeout";
@@ -154,6 +155,19 @@ export async function generateDisputeAnalysis(
     throw new OpenAIAnalysisError("openai_authentication_failed", 502);
   }
   if (response.status === 429) {
+    let errorPayload: unknown;
+    try {
+      errorPayload = await response.json();
+    } catch {
+      errorPayload = undefined;
+    }
+    const providerError = asRecord(asRecord(errorPayload)?.error);
+    if (
+      providerError?.code === "insufficient_quota" ||
+      providerError?.type === "insufficient_quota"
+    ) {
+      throw new OpenAIAnalysisError("openai_quota_exceeded", 503);
+    }
     throw new OpenAIAnalysisError("openai_rate_limited", 503);
   }
   if (!response.ok) {
